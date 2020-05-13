@@ -46,6 +46,7 @@ Metadata:
           default: AWS Quick Start Configuration
         Parameters:
           - QSS3BucketName
+          - QSS3BucketRegion
           - QSS3KeyPrefix
     ParameterLabels:
       BastionSecurityGroupID:
@@ -70,6 +71,8 @@ Metadata:
         default: Public Subnet 2 ID
       QSS3BucketName:
         default: Quick Start S3 Bucket Name
+      QSS3BucketRegion:
+        default: Quick Start S3 bucket region
       QSS3KeyPrefix:
         default: Quick Start S3 Key Prefix
       VPCID:
@@ -133,6 +136,10 @@ Parameters:
     Description: S3 bucket name for the Quick Start assets. Quick Start bucket name
       can include numbers, lowercase letters, uppercase letters, and hyphens (-).
       It cannot start or end with a hyphen (-).
+    Type: String
+  QSS3BucketRegion:
+    Default: 'us-east-1'
+    Description: 'The AWS Region where the Quick Start S3 bucket (QSS3BucketName) is hosted. When using your own bucket, you must specify this value.'
     Type: String
   QSS3KeyPrefix:
     AllowedPattern: ^[0-9a-zA-Z-/]*$
@@ -227,9 +234,7 @@ Mappings:
       AMZNLINUXHVM: ami-079f731edfe27c29c
       NGINXPLUSAMZNLINUXHVM: ami-0e060efe4959226ef
 Conditions:
-  GovCloudCondition: !Equals
-    - !Ref 'AWS::Region'
-    - us-gov-west-1
+  UsingDefaultBucket: !Equals [!Ref QSS3BucketName, 'aws-quickstart']
 Resources:
   NGINXPlusELBSecurityGroup:
     Type: AWS::EC2::SecurityGroup
@@ -302,8 +307,7 @@ Resources:
         S3AccessCreds:
           type: S3
           roleName: !Ref 'NGINXPlusIAMRole'
-          buckets:
-            - !Ref 'QSS3BucketName'
+          buckets: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
       AWS::CloudFormation::Init:
         configSets:
           bootstrap_install:
@@ -316,20 +320,18 @@ Resources:
         configure_nginx:
           files:
             /usr/share/nginx/html/index.html:
-              source: !Sub
-                - https://${QSS3BucketName}.${QSS3Region}.amazonaws.com/${QSS3KeyPrefix}scripts/index.html
-                - QSS3Region: !If
-                    - GovCloudCondition
-                    - s3-us-gov-west-1
-                    - s3
+              source:
+                !Sub
+                  - 'https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}scripts/index.html'
+                  - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
+                    S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
               authentication: S3AccessCreds
             /etc/nginx/conf.d/webapp1.conf:
-              source: !Sub
-                - https://${QSS3BucketName}.${QSS3Region}.amazonaws.com/${QSS3KeyPrefix}scripts/webapp1.conf
-                - QSS3Region: !If
-                    - GovCloudCondition
-                    - s3-us-gov-west-1
-                    - s3
+              source:
+                !Sub
+                  - 'https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}scripts/webapp1.conf'
+                  - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
+                    S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
               authentication: S3AccessCreds
           services:
             sysvinit:
@@ -368,7 +370,7 @@ Resources:
       MaxSize: !Ref 'WebAppNodesMaxSize'
       MinSize: !Ref 'WebAppNodesMinSize'
       DesiredCapacity: !Ref 'WebAppNodesDesiredCapacity'
-      HealthCheckGracePeriod: '300'
+      HealthCheckGracePeriod: 300
       HealthCheckType: EC2
       VPCZoneIdentifier:
         - !Ref 'PrivateSubnet1ID'
@@ -406,20 +408,18 @@ Resources:
         configure_nginx:
           files:
             /usr/share/nginx/html/index.html:
-              source: !Sub
-                - https://${QSS3BucketName}.${QSS3Region}.amazonaws.com/${QSS3KeyPrefix}scripts/index.html
-                - QSS3Region: !If
-                    - GovCloudCondition
-                    - s3-us-gov-west-1
-                    - s3
+              source:
+                !Sub
+                  - 'https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}scripts/index.html'
+                  - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
+                    S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
               authentication: S3AccessCreds
             /etc/nginx/conf.d/webapp2.conf:
-              source: !Sub
-                - https://${QSS3BucketName}.${QSS3Region}.amazonaws.com/${QSS3KeyPrefix}scripts/webapp2.conf
-                - QSS3Region: !If
-                    - GovCloudCondition
-                    - s3-us-gov-west-1
-                    - s3
+              source:
+                !Sub
+                  - 'https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}scripts/webapp2.conf'
+                  - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
+                    S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
               authentication: S3AccessCreds
           services:
             sysvinit:
@@ -508,8 +508,7 @@ Resources:
         S3AccessCreds:
           type: S3
           roleName: !Ref 'NGINXPlusIAMRole'
-          buckets:
-            - !Ref 'QSS3BucketName'
+          buckets: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
       AWS::CloudFormation::Init:
         configSets:
           bootstrap_install:
@@ -554,36 +553,32 @@ Resources:
         configure_nginx:
           files:
             /etc/nginx/conf.d/lb.conf:
-              source: !Sub
-                - https://${QSS3BucketName}.${QSS3Region}.amazonaws.com/${QSS3KeyPrefix}scripts/lb.conf
-                - QSS3Region: !If
-                    - GovCloudCondition
-                    - s3-us-gov-west-1
-                    - s3
+              source:
+                !Sub
+                  - 'https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}scripts/lb.conf'
+                  - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
+                    S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
               authentication: S3AccessCreds
             /etc/nginx/conf.d/status.conf:
-              source: !Sub
-                - https://${QSS3BucketName}.${QSS3Region}.amazonaws.com/${QSS3KeyPrefix}scripts/status.conf
-                - QSS3Region: !If
-                    - GovCloudCondition
-                    - s3-us-gov-west-1
-                    - s3
+              source:
+                !Sub
+                  - 'https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}scripts/status.conf'
+                  - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
+                    S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
               authentication: S3AccessCreds
             /etc/nginx/conf.d/default.conf:
-              source: !Sub
-                - https://${QSS3BucketName}.${QSS3Region}.amazonaws.com/${QSS3KeyPrefix}scripts/default.conf
-                - QSS3Region: !If
-                    - GovCloudCondition
-                    - s3-us-gov-west-1
-                    - s3
+              source:
+                !Sub
+                  - 'https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}scripts/default.conf'
+                  - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
+                    S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
               authentication: S3AccessCreds
             /usr/share/nginx/html/index.html:
-              source: !Sub
-                - https://${QSS3BucketName}.${QSS3Region}.amazonaws.com/${QSS3KeyPrefix}scripts/lb-index.html
-                - QSS3Region: !If
-                    - GovCloudCondition
-                    - s3-us-gov-west-1
-                    - s3
+              source:
+                !Sub
+                  - 'https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}scripts/lb-index.html'
+                  - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
+                    S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
               authentication: S3AccessCreds
           services:
             sysvinit:
@@ -628,7 +623,7 @@ Resources:
       MaxSize: !Ref 'NGINXPlusNodesMaxSize'
       MinSize: !Ref 'NGINXPlusNodesMinSize'
       DesiredCapacity: !Ref 'NGINXPlusNodesDesiredCapacity'
-      HealthCheckGracePeriod: '300'
+      HealthCheckGracePeriod: 300
       HealthCheckType: ELB
       VPCZoneIdentifier:
         - !Ref 'PrivateSubnet1ID'
@@ -677,11 +672,8 @@ Resources:
               - Action:
                   - s3:GetObject
                 Resource: !Sub
-                  - arn:${Partition}:s3:::${QSS3BucketName}/${QSS3KeyPrefix}*
-                  - Partition: !If
-                      - GovCloudCondition
-                      - aws-us-gov
-                      - aws
+                  - arn:${AWS::Partition}:s3:::${S3Bucket}/${QSS3KeyPrefix}*
+                  - S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
                 Effect: Allow
   NGINXPlusInstanceProfile:
     Type: AWS::IAM::InstanceProfile
