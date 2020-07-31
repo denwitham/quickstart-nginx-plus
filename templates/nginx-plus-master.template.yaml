@@ -232,7 +232,7 @@ Resources:
     DependsOn: VPCStack
     Properties:
       Parameters:
-        BastionAMIOS: Amazon-Linux-HVM
+        BastionAMIOS: Amazon-Linux2-HVM
         BastionInstanceType: !Ref 'BastionInstanceType'
         KeyPairName: !Ref 'KeyPairName'
         PublicSubnet1ID: !GetAtt 'VPCStack.Outputs.PublicSubnet1ID'
