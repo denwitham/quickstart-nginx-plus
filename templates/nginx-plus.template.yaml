@@ -5,7 +5,7 @@ Description: >-
   AMI HVM from the AWS Marketplace before you launch this template. See the deployment
   guide at http://aws.amazon.com/quickstart for details. This template creates Amazon
   EC2 instances and related resources. You will be billed for the AWS resources used
-  if you create a stack from this template. QS(5002)
+  if you create a stack from this template. (qs-1qup6raja)
 Metadata:
   AWSAMIRegionMap:
     Filters:
